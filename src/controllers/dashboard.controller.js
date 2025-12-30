@@ -15,7 +15,7 @@ exports.getSummary = async (req, res) => {
       {
         $group: {
           _id: null,
-          total: { $sum: "$amount" }
+          total: { $sum: "$value" }
         }
       }
     ]);
@@ -30,7 +30,7 @@ exports.getSummary = async (req, res) => {
       {
         $group: {
           _id: null,
-          total: { $sum: "$amount" }
+          total: { $sum: "$value" }
         }
       }
     ]);
@@ -47,6 +47,6 @@ exports.getSummary = async (req, res) => {
       boxes
     });
   } catch (err) {
-    res.status(500).json({ error: "Erro ao gerar resumo" });
+    res.status(500).json({ error: "Erro ao gerar resumo do dashboard" });
   }
 };
