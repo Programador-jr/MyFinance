@@ -1,23 +1,52 @@
 const Transaction = require("../models/Transaction");
 const Box = require("../models/Box");
 
-exports.summary = async (req, res) => {
-  const transactions = await Transaction.find({ familyId: req.familyId });
+exports.getSummary = async (req, res) => {
+  try {
+    const familyId = req.user.familyId;
 
-  let income = 0;
-  let expense = 0;
+    const incomeAgg = await Transaction.aggregate([
+      {
+        $match: {
+          familyId: familyId,
+          type: "income"
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: "$amount" }
+        }
+      }
+    ]);
 
-  transactions.forEach(t => {
-    if (t.type === "income") income += t.value;
-    else expense += t.value;
-  });
+    const expenseAgg = await Transaction.aggregate([
+      {
+        $match: {
+          familyId: familyId,
+          type: "expense"
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: "$amount" }
+        }
+      }
+    ]);
 
-  const boxes = await Box.find({ familyId: req.familyId });
+    const income = incomeAgg[0]?.total || 0;
+    const expense = expenseAgg[0]?.total || 0;
 
-  res.json({
-    income,
-    expense,
-    balance: income - expense,
-    boxes
-  });
+    const boxes = await Box.find({ familyId });
+
+    res.json({
+      income,
+      expense,
+      balance: income - expense,
+      boxes
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Erro ao gerar resumo" });
+  }
 };
