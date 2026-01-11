@@ -2,9 +2,12 @@ const Transaction = require("../models/Transaction");
 const Box = require("../models/Box");
 
 exports.summary = async (req, res) => {
+  let { year, month } = req.query;
+
   const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth() + 1;
+
+  year = year ? Number(year) : now.getFullYear();
+  month = month ? Number(month) : now.getMonth() + 1;
 
   const start = new Date(year, month - 1, 1, 0, 0, 0);
   const end = new Date(year, month, 0, 23, 59, 59);

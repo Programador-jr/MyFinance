@@ -1,13 +1,11 @@
 const router = require("express").Router();
 const auth = require("../middlewares/auth.middleware");
-const controller = require("../controllers/box.controller");
+const controller = require("../controllers/category.controller");
 
 router.use(auth);
 
 router.get("/", controller.list);
 router.post("/", controller.create);
-
-router.post("/:id/move", controller.move);
 router.put("/:id", controller.update);
 router.delete("/:id", controller.remove);
 
