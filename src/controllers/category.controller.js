@@ -1,5 +1,5 @@
 const Transaction = require("../models/Transaction");
-const Category = require("../models/category");
+const Category = require("../models/Category");
 
 /* ===============================
    LISTAR CATEGORIAS
