@@ -5,7 +5,7 @@ const authRoutes = require("./routes/auth.routes");
 const transactionRoutes = require("./routes/transaction.routes");
 const boxRoutes = require("./routes/box.routes");
 const dashboardRoutes = require("./routes/dashboard.routes");
-categoryRoutes = require("./routes/category.routes");
+const categoryRoutes = require("./routes/category.routes");
 const familyRoutes = require("./routes/family.routes");
 
 const app = express();
