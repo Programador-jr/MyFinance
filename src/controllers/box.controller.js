@@ -1,68 +1,118 @@
+const connectDB = require("../config/database");
+
 const Box = require("../models/Box");
 const BoxTransaction = require("../models/BoxTransaction");
 
 exports.list = async (req, res) => {
-  res.json(await Box.find({ familyId: req.familyId }));
+  try {
+    await connectDB();
+
+    const boxes = await Box.find({ familyId: req.familyId });
+    return res.json(boxes);
+  } catch (err) {
+    console.error("BOX LIST ERROR:", err);
+    return res.status(500).json({ error: "Erro ao listar caixinhas" });
+  }
 };
 
 exports.move = async (req, res) => {
-  const { value, type } = req.body;
-  const box = await Box.findById(req.params.id);
+  try {
+    await connectDB();
 
-  if (!box) return res.status(404).json({ error: "Caixinha não encontrada" });
+    const { value, type } = req.body;
+    const box = await Box.findById(req.params.id);
 
-  box.currentValue += type === "in" ? value : -value;
-  await box.save();
+    if (!box) {
+      return res.status(404).json({ error: "Caixinha não encontrada" });
+    }
 
-  await BoxTransaction.create({
-    boxId: box._id,
-    familyId: req.familyId,
-    userId: req.userId,
-    type,
-    value,
-    date: new Date()
-  });
+    box.currentValue += type === "in" ? value : -value;
+    await box.save();
 
-  res.json(box);
+    await BoxTransaction.create({
+      boxId: box._id,
+      familyId: req.familyId,
+      userId: req.userId,
+      type,
+      value,
+      date: new Date()
+    });
+
+    return res.json(box);
+  } catch (err) {
+    console.error("BOX MOVE ERROR:", err);
+    return res.status(500).json({ error: "Erro ao movimentar caixinha" });
+  }
 };
 
 exports.create = async (req, res) => {
-  const { name, isEmergency = false } = req.body;
+  try {
+    await connectDB();
 
-  if (!name || !name.trim()) {
-    return res.status(400).json({ error: "Nome é obrigatório" });
+    const { name, isEmergency = false } = req.body;
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ error: "Nome é obrigatório" });
+    }
+
+    const box = await Box.create({
+      familyId: req.familyId,
+      name: name.trim(),
+      isEmergency: !!isEmergency,
+      currentValue: 0
+    });
+
+    return res.status(201).json(box);
+  } catch (err) {
+    console.error("BOX CREATE ERROR:", err);
+    return res.status(500).json({ error: "Erro ao criar caixinha" });
   }
-
-  const box = await Box.create({
-    familyId: req.familyId,
-    name: name.trim(),
-    isEmergency: !!isEmergency,
-    currentValue: 0
-  });
-
-  res.status(201).json(box);
 };
 
-
 exports.update = async (req, res) => {
-  const { name, isEmergency } = req.body;
+  try {
+    await connectDB();
 
-  const box = await Box.findOneAndUpdate(
-    { _id: req.params.id, familyId: req.familyId },
-    { name, isEmergency },
-    { new: true }
-  );
+    const { name, isEmergency } = req.body;
 
-  if (!box) return res.status(404).json({ error: "Caixinha não encontrada" });
-  res.json(box);
+    const box = await Box.findOneAndUpdate(
+      { _id: req.params.id, familyId: req.familyId },
+      { name, isEmergency },
+      { new: true }
+    );
+
+    if (!box) {
+      return res.status(404).json({ error: "Caixinha não encontrada" });
+    }
+
+    return res.json(box);
+  } catch (err) {
+    console.error("BOX UPDATE ERROR:", err);
+    return res.status(500).json({ error: "Erro ao atualizar caixinha" });
+  }
 };
 
 exports.remove = async (req, res) => {
-  const box = await Box.findOneAndDelete({ _id: req.params.id, familyId: req.familyId });
-  if (!box) return res.status(404).json({ error: "Caixinha não encontrada" });
+  try {
+    await connectDB();
 
-  // opcional: limpar histórico
-  await BoxTransaction.deleteMany({ boxId: box._id, familyId: req.familyId });
+    const box = await Box.findOneAndDelete({
+      _id: req.params.id,
+      familyId: req.familyId
+    });
 
-  res.json({ ok: true });
+    if (!box) {
+      return res.status(404).json({ error: "Caixinha não encontrada" });
+    }
+
+    await BoxTransaction.deleteMany({
+      boxId: box._id,
+      familyId: req.familyId
+    });
+
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error("BOX REMOVE ERROR:", err);
+    return res.status(500).json({ error: "Erro ao remover caixinha" });
+  }
 };
