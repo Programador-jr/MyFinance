@@ -12,13 +12,21 @@ async function connectDB() {
   }
 
   if (!cached.promise) {
-    cached.promise = mongoose.connect(process.env.MONGO_URI, {
-      bufferCommands: false
-    }).then((mongoose) => mongoose);
+    cached.promise = mongoose
+      .connect(process.env.MONGO_URI, {
+        dbName: process.env.DB_NAME,
+        bufferCommands: false,
+        serverSelectionTimeoutMS: 15000
+      })
+      .then((mongoose) => mongoose);
   }
-
+try {
   cached.conn = await cached.promise;
-  return cached.conn;
+} catch (err) {
+    cached.promise = null;
+    throw err;
 }
+  return cached.conn;
+} 
 
 module.exports = connectDB;
