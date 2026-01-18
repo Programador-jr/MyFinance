@@ -2,7 +2,10 @@ const express = require("express");
 const cors = require("cors");
 const connectDB = require("./config/database");
 
+
+const path = require("path");
 const authRoutes = require("./routes/auth.routes");
+const userRoutes = require("./routes/user.routes");
 const transactionRoutes = require("./routes/transaction.routes");
 const boxRoutes = require("./routes/box.routes");
 const dashboardRoutes = require("./routes/dashboard.routes");
@@ -14,7 +17,7 @@ const app = express();
 app.use(cors({ origin: "*" }));
 app.use(express.json());
 
-// Health check — NUNCA toca no banco
+// Health check que nao depende do banco.
 app.get("/", (req, res) => {
   res.status(200).json({
     status: "ok",
@@ -35,12 +38,20 @@ app.use(async (req, res, next) => {
   }
 });
 
-// Rotas
-app.use("/auth", authRoutes);
-app.use("/transactions", transactionRoutes);
-app.use("/categories", categoryRoutes);
-app.use("/boxes", boxRoutes);
-app.use("/dashboard", dashboardRoutes);
-app.use("/family", familyRoutes);
+// Rotas e arquivos estaticos.
+app.use("/uploads", express.static(path.resolve(__dirname, "uploads")));
+
+const v1 = express.Router();
+// Rotas versionadas.
+v1.use("/auth", authRoutes);
+v1.use("/users", userRoutes);
+v1.use("/transactions", transactionRoutes);
+v1.use("/categories", categoryRoutes);
+v1.use("/boxes", boxRoutes);
+v1.use("/dashboard", dashboardRoutes);
+v1.use("/family", familyRoutes);
+
+app.use("/v1", v1);
 
 module.exports = app;
+

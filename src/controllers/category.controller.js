@@ -3,9 +3,6 @@ const connectDB = require("../config/database");
 const Transaction = require("../models/Transaction");
 const Category = require("../models/Category");
 
-/* ===============================
-   LISTAR CATEGORIAS
-================================ */
 exports.list = async (req, res) => {
   try {
     await connectDB();
@@ -24,9 +21,6 @@ exports.list = async (req, res) => {
   }
 };
 
-/* ===============================
-   CRIAR CATEGORIA
-================================ */
 exports.create = async (req, res) => {
   try {
     await connectDB();
@@ -37,6 +31,7 @@ exports.create = async (req, res) => {
       return res.status(400).json({ error: "Dados inválidos" });
     }
 
+    // Evita duplicidade por nome na mesma familia.
     const exists = await Category.findOne({
       name: new RegExp(`^${name}$`, "i"),
       $or: [
@@ -63,9 +58,6 @@ exports.create = async (req, res) => {
   }
 };
 
-/* ===============================
-   EDITAR CATEGORIA
-================================ */
 exports.update = async (req, res) => {
   try {
     await connectDB();
@@ -93,9 +85,6 @@ exports.update = async (req, res) => {
   }
 };
 
-/* ===============================
-   EXCLUIR CATEGORIA
-================================ */
 exports.remove = async (req, res) => {
   try {
     await connectDB();
@@ -112,6 +101,7 @@ exports.remove = async (req, res) => {
       return res.status(404).json({ error: "Categoria não encontrada" });
     }
 
+    // Bloqueia exclusao se houver transacoes usando a categoria.
     const inUse = await Transaction.exists({
       familyId: req.familyId,
       category: category.name

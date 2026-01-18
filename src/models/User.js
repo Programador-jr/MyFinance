@@ -1,13 +1,26 @@
 const mongoose = require("mongoose");
 
 const UserSchema = new mongoose.Schema({
-  name: String,
-  email: { type: String, unique: true },
-  password: String,
+  name: { 
+    type: String, 
+    trim: true,
+    required: true 
+  },
+  email: { 
+    type: String,
+    unique: true 
+  },
+
+    password: String,
 
   familyId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Family"
+  },
+
+  avatarUrl: { 
+    type: String, 
+    default: null 
   },
 
   emailVerified: {

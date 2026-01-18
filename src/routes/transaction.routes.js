@@ -7,7 +7,7 @@ router.use(auth);
 router.post("/", controller.create);
 router.get("/", controller.list);
 
-/* FILTROS */
+// Filtros de periodo.
 router.get("/month", controller.byMonth);
 router.get("/year", controller.byYear);
 router.get("/range", controller.byRange);

@@ -1,5 +1,3 @@
-// controllers/auth.controller.js
-
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
@@ -14,12 +12,6 @@ const { sendMail } = require("../services/mail.service");
 const { secret, expiresIn } = require("../config/jwt");
 
 const FRONT_URL = process.env.FRONT_URL;
-
-/**
- * =========================================================
- * AUTH CONTROLLER
- * =========================================================
- */
 
 exports.register = async (req, res) => {
   try {
@@ -53,6 +45,7 @@ exports.register = async (req, res) => {
     });
 
     if (!inviteCode) {
+      // Cria familia e caixinha de emergencia no cadastro inicial.
       const newInviteCode = crypto.randomBytes(4).toString("hex").toUpperCase();
 
       family = await Family.create({
@@ -112,7 +105,8 @@ exports.login = async (req, res) => {
       name: user.name,
       email: user.email,
       familyId: user.familyId,
-      emailVerified: user.emailVerified
+      emailVerified: user.emailVerified,
+      avatarUrl: user.avatarUrl || null,
     };
 
     return res.json({ token, user: safeUser });
