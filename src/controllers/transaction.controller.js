@@ -1,8 +1,5 @@
 const Transaction = require("../models/Transaction");
 
-/* ===============================
-   CRIAR TRANSAÇÃO
-================================ */
 exports.create = async (req, res) => {
   try {
     const transaction = await Transaction.create({
@@ -19,9 +16,6 @@ exports.create = async (req, res) => {
   }
 };
 
-/* ===============================
-   LISTAR TODAS
-================================ */
 exports.list = async (req, res) => {
   try {
     const transactions = await Transaction.find({
@@ -36,9 +30,6 @@ exports.list = async (req, res) => {
   }
 };
 
-/* ===============================
-   POR MÊS
-================================ */
 exports.byMonth = async (req, res) => {
   try {
     const { year, month } = req.query;
@@ -49,6 +40,7 @@ exports.byMonth = async (req, res) => {
       });
     }
 
+    // Intervalo fechado do mes informado.
     const start = new Date(year, month - 1, 1, 0, 0, 0);
     const end = new Date(year, month, 0, 23, 59, 59);
 
@@ -65,9 +57,6 @@ exports.byMonth = async (req, res) => {
   }
 };
 
-/* ===============================
-   POR ANO
-================================ */
 exports.byYear = async (req, res) => {
   try {
     const { year } = req.query;
@@ -78,6 +67,7 @@ exports.byYear = async (req, res) => {
       });
     }
 
+    // Intervalo fechado do ano informado.
     const start = new Date(year, 0, 1, 0, 0, 0);
     const end = new Date(year, 11, 31, 23, 59, 59);
 
@@ -94,9 +84,6 @@ exports.byYear = async (req, res) => {
   }
 };
 
-/* ===============================
-   INTERVALO PERSONALIZADO
-================================ */
 exports.byRange = async (req, res) => {
   try {
     const { start, end } = req.query;
@@ -107,6 +94,7 @@ exports.byRange = async (req, res) => {
       });
     }
 
+    // Ajusta o fim do periodo para incluir o dia inteiro.
     const startDate = new Date(start);
     const endDate = new Date(end);
     endDate.setHours(23, 59, 59, 999);
@@ -124,9 +112,6 @@ exports.byRange = async (req, res) => {
   }
 };
 
-/* ===============================
-   BUSCAR POR ID
-================================ */
 exports.getById = async (req, res) => {
   try {
     const transaction = await Transaction.findOne({
@@ -146,9 +131,6 @@ exports.getById = async (req, res) => {
   }
 };
 
-/* ===============================
-   EDITAR TRANSAÇÃO
-================================ */
 exports.update = async (req, res) => {
   try {
     const { id } = req.params;
@@ -173,9 +155,6 @@ exports.update = async (req, res) => {
   }
 };
 
-/* ===============================
-   EXCLUIR TRANSAÇÃO
-================================ */
 exports.remove = async (req, res) => {
   try {
     const { id } = req.params;

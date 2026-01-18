@@ -2,9 +2,6 @@ const Family = require("../models/Family");
 const User = require("../models/User");
 const crypto = require("crypto");
 
-/* ===============================
-   ENTRAR EM UMA FAMÍLIA
-================================ */
 exports.joinFamily = async (req, res) => {
   try {
     const { code } = req.body;
@@ -19,6 +16,7 @@ exports.joinFamily = async (req, res) => {
       return res.status(400).json({ error: "Usuário já pertence a uma família" });
     }
 
+    // Valida o codigo de convite informado.
     const family = await Family.findOne({ inviteCode: code });
     if (!family) {
       return res.status(400).json({ error: "Código inválido" });
@@ -35,9 +33,6 @@ exports.joinFamily = async (req, res) => {
   }
 };
 
-/* ===============================
-   OBTER DADOS DA FAMÍLIA
-================================ */
 exports.getFamily = async (req, res) => {
   try {
     const family = await Family.findById(req.family._id)
@@ -60,9 +55,6 @@ exports.getFamily = async (req, res) => {
   }
 };
 
-/* ===============================
-   OBTER CÓDIGO DE CONVITE
-================================ */
 exports.getInviteCode = async (req, res) => {
   try {
     return res.json({ inviteCode: req.family.inviteCode });
@@ -72,11 +64,9 @@ exports.getInviteCode = async (req, res) => {
   }
 };
 
-/* ===============================
-   REGERAR CÓDIGO DE CONVITE
-================================ */
 exports.regenerateInviteCode = async (req, res) => {
   try {
+    // Gera um novo codigo de convite.
     req.family.inviteCode = crypto
       .randomBytes(4)
       .toString("hex")
