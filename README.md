@@ -29,6 +29,8 @@ Crie um arquivo `.env` na raiz com as variaveis abaixo (exemplo):
 ```env
 PORT=3000
 MONGO_URI=mongodb+srv://USER:PASS@HOST/?appName=myfinance
+MONGO_URI_DIRECT=mongodb://HOST1,HOST2,HOST3/?replicaSet=atlas-xxxxx-shard-0&ssl=true&authSource=admin
+DNS_SERVERS=1.1.1.1,8.8.8.8
 DB_NAME=general
 JWT_SECRET=change_me
 MAIL_USER=myfinance.app.noreply@gmail.com
@@ -36,6 +38,10 @@ MAIL_PASS=app_password
 FRONT_URL=http://localhost:5000
 BLOB_READ_WRITE_TOKEN=vercel_blob_token
 ```
+
+Notas:
+- `MONGO_URI_DIRECT` e opcional e so usado como fallback quando o DNS SRV falhar.
+- `DNS_SERVERS` e opcional e pode ajudar em ambientes com bloqueio de consulta SRV.
 
 ## Como rodar
 
@@ -64,7 +70,7 @@ Respostas de erro seguem o formato:
 
 ## Endpoints
 
-Base URL: `/v1`
+Base URL: `/`
 
 ### Health check
 
@@ -79,7 +85,7 @@ Exemplo de resposta:
 
 ### Auth
 
-- `POST /v1/auth/register`  
+- `POST /auth/register`  
   Cria usuario e familia (se nao houver `inviteCode`) e envia email de
   verificacao.
 
@@ -103,7 +109,7 @@ Resposta:
 }
 ```
 
-- `POST /v1/auth/login`  
+- `POST /auth/login`  
   Autentica e retorna token + dados do usuario.
 
 Corpo:
@@ -128,10 +134,10 @@ Resposta:
 }
 ```
 
-- `GET /v1/auth/verify-email?token=...`  
+- `GET /auth/verify-email?token=...`  
   Valida o token de verificacao de email.
 
-- `POST /v1/auth/resend-verification`  
+- `POST /auth/resend-verification`  
   Reenvia email de verificacao.
 
 Corpo:
@@ -140,7 +146,7 @@ Corpo:
 { "email": "ana@email.com" }
 ```
 
-- `POST /v1/auth/forgot-password`  
+- `POST /auth/forgot-password`  
   Dispara email de recuperacao.
 
 Corpo:
@@ -149,7 +155,7 @@ Corpo:
 { "email": "ana@email.com" }
 ```
 
-- `POST /v1/auth/reset-password`  
+- `POST /auth/reset-password`  
   Redefine senha com token valido.
 
 Corpo:
@@ -160,7 +166,7 @@ Corpo:
 
 ### Usuario (auth)
 
-- `PATCH /v1/users/me`  
+- `PATCH /users/me`  
   Atualiza o nome do usuario logado.
 
 Corpo:
@@ -169,7 +175,7 @@ Corpo:
 { "name": "Ana Maria" }
 ```
 
-- `PATCH /v1/users/me/avatar`  
+- `PATCH /users/me/avatar`  
   Upload do avatar do usuario logado.
 
 Requisitos:
@@ -194,7 +200,7 @@ Campos comuns:
 - `group`: `fixed` | `variable` | `planned` | `unexpected`
 - `date`: ISO string
 
-- `POST /v1/transactions`  
+- `POST /transactions`  
   Cria uma transacao.
 
 Corpo:
@@ -209,33 +215,33 @@ Corpo:
 }
 ```
 
-- `GET /v1/transactions`  
+- `GET /transactions`  
   Lista todas as transacoes da familia (ordenadas por data desc).
 
-- `GET /v1/transactions/month?year=YYYY&month=MM`  
+- `GET /transactions/month?year=YYYY&month=MM`  
   Filtra por mes.
 
-- `GET /v1/transactions/year?year=YYYY`  
+- `GET /transactions/year?year=YYYY`  
   Filtra por ano.
 
-- `GET /v1/transactions/range?start=YYYY-MM-DD&end=YYYY-MM-DD`  
+- `GET /transactions/range?start=YYYY-MM-DD&end=YYYY-MM-DD`  
   Filtra por intervalo.
 
-- `GET /v1/transactions/:id`  
+- `GET /transactions/:id`  
   Busca uma transacao especifica.
 
-- `PUT /v1/transactions/:id`  
+- `PUT /transactions/:id`  
   Atualiza uma transacao existente.
 
-- `DELETE /v1/transactions/:id`  
+- `DELETE /transactions/:id`  
   Remove uma transacao.
 
 ### Categorias (auth)
 
-- `GET /v1/categories`  
+- `GET /categories`  
   Lista categorias fixas e da familia.
 
-- `POST /v1/categories`  
+- `POST /categories`  
   Cria categoria customizada.
 
 Corpo:
@@ -244,18 +250,18 @@ Corpo:
 { "name": "Mercado", "type": "expense" }
 ```
 
-- `PUT /v1/categories/:id`  
+- `PUT /categories/:id`  
   Atualiza o nome da categoria.
 
-- `DELETE /v1/categories/:id`  
+- `DELETE /categories/:id`  
   Remove categoria (nao pode estar em uso).
 
 ### Caixinhas (auth)
 
-- `GET /v1/boxes`  
+- `GET /boxes`  
   Lista caixinhas da familia.
 
-- `POST /v1/boxes`  
+- `POST /boxes`  
   Cria caixinha.
 
 Corpo:
@@ -264,7 +270,7 @@ Corpo:
 { "name": "Reserva", "isEmergency": true }
 ```
 
-- `POST /v1/boxes/:id/move`  
+- `POST /boxes/:id/move`  
   Movimenta valor dentro/fora da caixinha.
 
 Corpo:
@@ -273,15 +279,15 @@ Corpo:
 { "type": "in", "value": 200 }
 ```
 
-- `PUT /v1/boxes/:id`  
+- `PUT /boxes/:id`  
   Atualiza dados da caixinha.
 
-- `DELETE /v1/boxes/:id`  
+- `DELETE /boxes/:id`  
   Remove caixinha e seu historico.
 
 ### Dashboard (auth)
 
-- `GET /v1/dashboard/summary?year=YYYY&month=MM`  
+- `GET /dashboard/summary?year=YYYY&month=MM`  
   Retorna totais de receitas/despesas, saldo e caixinhas.
 
 Resposta:
@@ -292,7 +298,7 @@ Resposta:
 
 ### Familia (auth)
 
-- `POST /v1/family/join`  
+- `POST /family/join`  
   Entra em uma familia via codigo.
 
 Corpo:
@@ -301,16 +307,16 @@ Corpo:
 { "code": "ABCD1234" }
 ```
 
-- `GET /v1/family`  
+- `GET /family`  
   Retorna dados da familia e membros.
 
-- `GET /v1/family/invite-code`  
+- `GET /family/invite-code`  
   Retorna o codigo de convite (somente owner).
 
-- `POST /v1/family/invite-code`  
+- `POST /family/invite-code`  
   Regenera o codigo (somente owner).
 
-- `PATCH /v1/family/invite-code`  
+- `PATCH /family/invite-code`  
   Regenera o codigo (somente owner).
 
 ## Uploads (Avatar)
@@ -320,6 +326,4 @@ retorna o `avatarUrl` com a URL publica do blob.
 
 Requer a variavel `BLOB_READ_WRITE_TOKEN` configurada no ambiente.
 
-## Licenca
-
-ISC
+## [Licença](LICENSE) 
