@@ -8,6 +8,7 @@ const authRoutes = require("./routes/auth.routes");
 const userRoutes = require("./routes/user.routes");
 const transactionRoutes = require("./routes/transaction.routes");
 const boxRoutes = require("./routes/box.routes");
+const accountRoutes = require("./routes/account.routes");
 const dashboardRoutes = require("./routes/dashboard.routes");
 const categoryRoutes = require("./routes/category.routes");
 const familyRoutes = require("./routes/family.routes");
@@ -46,6 +47,7 @@ app.use("/users", userRoutes);
 app.use("/transactions", transactionRoutes);
 app.use("/categories", categoryRoutes);
 app.use("/boxes", boxRoutes);
+app.use("/accounts", accountRoutes);
 app.use("/dashboard", dashboardRoutes);
 app.use("/family", familyRoutes);
 
