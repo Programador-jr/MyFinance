@@ -236,6 +236,59 @@ Corpo:
 - `DELETE /transactions/:id`  
   Remove uma transacao.
 
+### Contas (auth)
+
+Campos comuns:
+
+- `name`: string
+- `installmentValue`: number
+- `downPayment`: number (opcional)
+- `installments`: number inteiro >= 1
+- `paidInstallments`: number inteiro >= 0
+- `firstDueDate`: ISO string
+- `category`: string (opcional, pode ser definida no primeiro pagamento)
+
+- `POST /accounts`  
+  Cria uma conta.
+
+Corpo:
+
+```json
+{
+  "name": "Notebook",
+  "installmentValue": 350,
+  "downPayment": 500,
+  "installments": 10,
+  "firstDueDate": "2026-02-15",
+  "category": ""
+}
+```
+
+- `GET /accounts`  
+  Lista contas da familia.
+
+- `GET /accounts/:id`  
+  Busca uma conta por id.
+
+- `PUT /accounts/:id`  
+  Atualiza uma conta (todos os campos editaveis).
+
+- `DELETE /accounts/:id`  
+  Exclui uma conta.
+
+- `POST /accounts/:id/pay`  
+  Registra o pagamento da proxima parcela, cria uma transacao de despesa
+  (`group: fixed`) e incrementa `paidInstallments`.
+
+Corpo (quando a conta ainda nao tem categoria):
+
+```json
+{
+  "category": "Eletronicos",
+  "date": "2026-02-08T12:00:00.000Z"
+}
+```
+
 ### Categorias (auth)
 
 - `GET /categories`  
