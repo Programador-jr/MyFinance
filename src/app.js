@@ -41,17 +41,13 @@ app.use(async (req, res, next) => {
 // Rotas e arquivos estaticos.
 app.use("/uploads", express.static(path.resolve(__dirname, "uploads")));
 
-const v1 = express.Router();
-// Rotas versionadas.
-v1.use("/auth", authRoutes);
-v1.use("/users", userRoutes);
-v1.use("/transactions", transactionRoutes);
-v1.use("/categories", categoryRoutes);
-v1.use("/boxes", boxRoutes);
-v1.use("/dashboard", dashboardRoutes);
-v1.use("/family", familyRoutes);
-
-app.use("/v1", v1);
+app.use("/auth", authRoutes);
+app.use("/users", userRoutes);
+app.use("/transactions", transactionRoutes);
+app.use("/categories", categoryRoutes);
+app.use("/boxes", boxRoutes);
+app.use("/dashboard", dashboardRoutes);
+app.use("/family", familyRoutes);
 
 module.exports = app;
 
