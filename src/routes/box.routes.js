@@ -6,6 +6,7 @@ router.use(auth);
 
 router.get("/", controller.list);
 router.post("/", controller.create);
+router.get("/market/cdi", controller.marketCdi);
 
 router.post("/:id/move", controller.move);
 router.put("/:id", controller.update);

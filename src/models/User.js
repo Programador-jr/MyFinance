@@ -17,6 +17,11 @@ const UserSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: "Family"
   },
+  familyRole: {
+    type: String,
+    enum: ["owner", "admin", "member"],
+    default: "member"
+  },
 
   avatarUrl: { 
     type: String, 
