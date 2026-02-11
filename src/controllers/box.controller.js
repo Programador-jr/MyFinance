@@ -2,41 +2,12 @@ const connectDB = require("../config/database");
 
 const Box = require("../models/Box");
 const BoxTransaction = require("../models/BoxTransaction");
+const Category = require("../models/Category");
+const Transaction = require("../models/Transaction");
 const { getLatestCdiRate } = require("../services/cdi.service");
 
 const ALLOWED_INVESTMENT_TYPES = new Set(["none", "cdb_cdi"]);
-
-const IOF_TABLE = {
-  1: 0.96,
-  2: 0.93,
-  3: 0.90,
-  4: 0.86,
-  5: 0.83,
-  6: 0.80,
-  7: 0.76,
-  8: 0.73,
-  9: 0.70,
-  10: 0.66,
-  11: 0.63,
-  12: 0.60,
-  13: 0.56,
-  14: 0.53,
-  15: 0.50,
-  16: 0.46,
-  17: 0.43,
-  18: 0.40,
-  19: 0.36,
-  20: 0.33,
-  21: 0.30,
-  22: 0.26,
-  23: 0.23,
-  24: 0.20,
-  25: 0.16,
-  26: 0.13,
-  27: 0.10,
-  28: 0.06,
-  29: 0.03,
-};
+const YIELD_CATEGORY_NAME = "Rendimentos";
 
 function toNumber(value, fallback = 0) {
   const n = Number(value);
@@ -57,6 +28,10 @@ function parseBoolean(value, defaultValue = false) {
   if (["false", "0", "no", "off", "nao", "não"].includes(normalized)) return false;
   if (["true", "1", "yes", "on", "sim"].includes(normalized)) return true;
   return defaultValue;
+}
+
+function parseGoalAmount(value, fallback = 0) {
+  return Math.max(round2(toNumber(value, fallback)), 0);
 }
 
 function startOfDay(dateLike) {
@@ -110,13 +85,7 @@ function calcCalendarDaysSince(dateLike, refDate = new Date()) {
   if (end < start) return 0;
 
   const diffMs = end.getTime() - start.getTime();
-  return Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
-}
-
-function getIofRate(holdingDays) {
-  if (holdingDays >= 30) return 0;
-  if (holdingDays <= 0) return 0;
-  return IOF_TABLE[holdingDays] || 0;
+  return Math.floor(diffMs / (1000 * 60 * 60 * 24));
 }
 
 function getIrRate(holdingDays) {
@@ -124,6 +93,20 @@ function getIrRate(holdingDays) {
   if (holdingDays <= 360) return 0.20;
   if (holdingDays <= 720) return 0.175;
   return 0.15;
+}
+
+function applyRegressiveIrOverGrossYield(grossYield, holdingDays) {
+  const gross = Math.max(round2(toNumber(grossYield, 0)), 0);
+  const irRate = getIrRate(holdingDays);
+  const irTax = round2(gross * irRate);
+  const net = Math.max(round2(gross - irTax), 0);
+
+  return {
+    grossYield: gross,
+    irRate,
+    irTax,
+    netYield: net,
+  };
 }
 
 function annualToDailyRate(annualRatePercent) {
@@ -290,13 +273,13 @@ function buildTaxProjection(currentValue, principalValue, holdingDays) {
   const principal = Math.max(round2(toNumber(principalValue, 0)), 0);
   const grossProfit = Math.max(round2(current - principal), 0);
 
-  const iofRate = getIofRate(holdingDays);
-  const irRate = getIrRate(holdingDays);
-
-  const iofTax = round2(grossProfit * iofRate);
-  const profitAfterIof = Math.max(round2(grossProfit - iofTax), 0);
-  const irTax = round2(profitAfterIof * irRate);
-  const totalTax = round2(iofTax + irTax);
+  // A projecao liquida considera apenas IR sobre o rendimento bruto.
+  const irData = applyRegressiveIrOverGrossYield(grossProfit, holdingDays);
+  const iofRate = 0;
+  const iofTax = 0;
+  const irRate = irData.irRate;
+  const irTax = irData.irTax;
+  const totalTax = irTax;
 
   const netCurrentValue = round2(current - totalTax);
   const netProfit = Math.max(round2(netCurrentValue - principal), 0);
@@ -322,6 +305,15 @@ function serializeBox(boxDoc) {
 
   const currentValue = Math.max(round2(toNumber(raw.currentValue, 0)), 0);
   const principalValue = Math.max(round2(toNumber(raw.principalValue, 0)), 0);
+  const goalAmount = parseGoalAmount(raw.goalAmount, 0);
+  const goalProgressPercent =
+    goalAmount > 0
+      ? Math.min(round2((currentValue / goalAmount) * 100), 100)
+      : 0;
+  const goalRemainingValue =
+    goalAmount > 0
+      ? Math.max(round2(goalAmount - currentValue), 0)
+      : 0;
 
   const effectiveAnnualRate = getEffectiveAnnualRate(investment);
   const dailyRate = annualToDailyRate(effectiveAnnualRate);
@@ -330,10 +322,13 @@ function serializeBox(boxDoc) {
   const taxes = buildTaxProjection(currentValue, principalValue, holdingDays);
 
   const estimatedDailyGrossYield = round2(currentValue * dailyRate);
-  const estimatedDailyIofTax = round2(estimatedDailyGrossYield * taxes.tax.iofRate);
-  const dailyAfterIof = round2(estimatedDailyGrossYield - estimatedDailyIofTax);
-  const estimatedDailyIrTax = round2(dailyAfterIof * taxes.tax.irRate);
-  const estimatedDailyNetYield = round2(dailyAfterIof - estimatedDailyIrTax);
+  const dailyIrData = applyRegressiveIrOverGrossYield(
+    estimatedDailyGrossYield,
+    holdingDays
+  );
+  const estimatedDailyIofTax = 0;
+  const estimatedDailyIrTax = dailyIrData.irTax;
+  const estimatedDailyNetYield = dailyIrData.netYield;
 
   const displayName =
     investment.investmentType === "cdb_cdi"
@@ -344,8 +339,12 @@ function serializeBox(boxDoc) {
     ...raw,
     currentValue,
     principalValue,
+    goalAmount,
+    goalProgressPercent,
+    goalRemainingValue,
     investmentType: investment.investmentType,
     autoCdi: !!investment.autoCdi,
+    autoYieldToWallet: parseBoolean(raw.autoYieldToWallet, true),
     cdiAnnualRate: round2(investment.cdiAnnualRate),
     cdiPercentage: round2(investment.cdiPercentage),
     effectiveAnnualRate: round2(effectiveAnnualRate),
@@ -360,11 +359,57 @@ function serializeBox(boxDoc) {
   };
 }
 
+async function ensureYieldCategoryName(familyId) {
+  if (!familyId) return null;
+
+  // Reaproveita categoria existente para evitar duplicidade por familia.
+  const existing = await Category.findOne({
+    name: /^Rendimentos$/i,
+    type: "income",
+    $or: [
+      { isFixed: true },
+      { familyId },
+    ],
+  });
+
+  if (existing?.name) {
+    return existing.name;
+  }
+
+  const created = await Category.create({
+    name: YIELD_CATEGORY_NAME,
+    type: "income",
+    familyId,
+    isFixed: false,
+  });
+
+  return created.name;
+}
+
+async function registerYieldIncomeTransaction(req, yieldValue, date) {
+  const value = Math.max(round2(toNumber(yieldValue, 0)), 0);
+  if (!value || !req?.familyId || !req?.userId) return;
+
+  const category = await ensureYieldCategoryName(req.familyId);
+  if (!category) return;
+
+  await Transaction.create({
+    familyId: req.familyId,
+    userId: req.userId,
+    type: "income",
+    value,
+    category,
+    group: "variable",
+    date,
+  });
+}
+
 async function applyAutomaticYield(box, req, options = {}) {
   const investment = normalizeInvestment(box, box);
 
   box.investmentType = investment.investmentType;
   box.autoCdi = !!investment.autoCdi;
+  box.autoYieldToWallet = parseBoolean(box.autoYieldToWallet, true);
   box.cdiAnnualRate = investment.cdiAnnualRate;
   box.cdiPercentage = investment.cdiPercentage;
 
@@ -376,14 +421,14 @@ async function applyAutomaticYield(box, req, options = {}) {
       });
       box.cdiAnnualRate = investment.cdiAnnualRate;
     } catch (err) {
-      // Se falhar consulta do CDI oficial, continua com a taxa atual registrada.
+      console.warn("BOX CDI FETCH WARNING:", err.message);
     }
   }
 
   const currentValue = Math.max(round2(toNumber(box.currentValue, 0)), 0);
   const principalValue = Math.max(round2(toNumber(box.principalValue, 0)), 0);
 
-  // Legacy migration: old boxes had no principal tracking.
+  // Migracao retroativa para documentos antigos sem rastreio de principal.
   if (currentValue > 0 && principalValue <= 0 && !box.firstContributionAt) {
     box.principalValue = currentValue;
     box.firstContributionAt = box.createdAt || new Date();
@@ -431,6 +476,12 @@ async function applyAutomaticYield(box, req, options = {}) {
   const baseValue = Math.max(toNumber(box.currentValue, 0), 0);
   const growthFactor = Math.pow(1 + dailyRate, businessDays) - 1;
   const yieldValue = round2(baseValue * growthFactor);
+  const holdingDays = calcCalendarDaysSince(
+    box.firstContributionAt || box.createdAt || now,
+    now
+  );
+  const yieldIrData = applyRegressiveIrOverGrossYield(yieldValue, holdingDays);
+  const netYieldValue = yieldIrData.netYield;
 
   box.lastYieldAppliedAt = now;
   box.updatedAt = now;
@@ -442,14 +493,29 @@ async function applyAutomaticYield(box, req, options = {}) {
   await box.save();
 
   if (yieldValue > 0) {
+    const launchValue = Math.max(round2(netYieldValue), 0);
+
     await BoxTransaction.create({
       boxId: box._id,
       familyId: req.familyId,
       userId: req.userId,
       type: "yield",
-      value: yieldValue,
+      // "value" mantem o rendimento liquido para preservar compatibilidade com o app.
+      value: launchValue,
+      grossValue: round2(yieldValue),
+      netValue: launchValue,
+      irRate: yieldIrData.irRate,
+      irTax: yieldIrData.irTax,
       date: now,
     });
+
+    if (parseBoolean(box.autoYieldToWallet, true) && launchValue > 0) {
+      try {
+        await registerYieldIncomeTransaction(req, launchValue, now);
+      } catch (err) {
+        console.error("BOX YIELD TRANSACTION ERROR:", err);
+      }
+    }
   }
 }
 
@@ -562,6 +628,8 @@ exports.create = async (req, res) => {
 
     const name = String(req.body?.name || "").trim();
     const isEmergency = !!req.body?.isEmergency;
+    const autoYieldToWallet = parseBoolean(req.body?.autoYieldToWallet, true);
+    const goalAmount = parseGoalAmount(req.body?.goalAmount, 0);
     const investment = normalizeInvestment(req.body);
     const initialValue = Math.max(round2(toNumber(req.body?.initialValue, 0)), 0);
     const providedApplicationDate = parseDateInput(req.body?.applicationDate);
@@ -605,9 +673,11 @@ exports.create = async (req, res) => {
       isEmergency,
       currentValue: initialValue,
       principalValue: initialValue,
+      goalAmount,
       firstContributionAt,
       investmentType: investment.investmentType,
       autoCdi: !!investment.autoCdi,
+      autoYieldToWallet,
       cdiAnnualRate: investment.cdiAnnualRate,
       cdiPercentage: investment.cdiPercentage,
       lastYieldAppliedAt: firstContributionAt || now,
@@ -653,6 +723,11 @@ exports.update = async (req, res) => {
 
     const name = String(req.body?.name || "").trim();
     const isEmergency = !!req.body?.isEmergency;
+    const goalAmount = parseGoalAmount(req.body?.goalAmount, box.goalAmount);
+    const autoYieldToWallet = parseBoolean(
+      req.body?.autoYieldToWallet,
+      parseBoolean(box.autoYieldToWallet, true)
+    );
     const investment = normalizeInvestment(req.body, box);
 
     if (!name) {
@@ -682,8 +757,10 @@ exports.update = async (req, res) => {
 
     box.name = name;
     box.isEmergency = isEmergency;
+    box.goalAmount = goalAmount;
     box.investmentType = investment.investmentType;
     box.autoCdi = !!investment.autoCdi;
+    box.autoYieldToWallet = autoYieldToWallet;
     box.cdiAnnualRate = investment.cdiAnnualRate;
     box.cdiPercentage = investment.cdiPercentage;
     box.updatedAt = new Date();

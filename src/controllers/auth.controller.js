@@ -9,6 +9,10 @@ const Family = require("../models/Family");
 const Box = require("../models/Box");
 
 const { sendMail } = require("../services/mail.service");
+const {
+  buildVerificationEmail,
+  buildResetPasswordEmail,
+} = require("../services/mail-template.service");
 const { secret, expiresIn } = require("../config/jwt");
 
 const FRONT_URL = process.env.FRONT_URL;
@@ -97,8 +101,8 @@ exports.register = async (req, res) => {
 
     await sendMail({
       to: email,
-      subject: "Verifique seu email",
-      html: `Olá, ${name}\n\nClique no link abaixo para verificar seu email:\n${link}`
+      subject: "Confirme seu cadastro no MyFinance",
+      html: buildVerificationEmail({ name, link })
     });
 
     return res.json({
@@ -193,8 +197,8 @@ exports.forgotPassword = async (req, res) => {
 
     await sendMail({
       to: email,
-      subject: "Recuperação de senha",
-      html: `Clique no link abaixo para redefinir sua senha:\n${link}`
+      subject: "Redefina sua senha no MyFinance",
+      html: buildResetPasswordEmail({ name: user.name, link })
     });
 
     return res.json({ message: "Email enviado" });
@@ -226,8 +230,8 @@ exports.resendVerification = async (req, res) => {
 
     await sendMail({
       to: user.email,
-      subject: "Verifique seu email",
-      html: `Olá, ${user.name}\n\nClique no link abaixo para verificar seu email:\n${link}`
+      subject: "Confirme seu cadastro no MyFinance",
+      html: buildVerificationEmail({ name: user.name, link })
     });
 
     return res.json({ message: "Email reenviado" });

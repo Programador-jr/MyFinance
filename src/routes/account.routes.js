@@ -8,6 +8,7 @@ router.post("/", controller.create);
 router.get("/", controller.list);
 
 router.post("/:id/pay", controller.pay);
+router.post("/:id/adjust-subscription", controller.adjustSubscription);
 router.get("/:id", controller.getById);
 router.put("/:id", controller.update);
 router.delete("/:id", controller.remove);

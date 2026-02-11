@@ -17,6 +17,21 @@ const AccountSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  accountType: {
+    type: String,
+    enum: ["installment", "subscription", "fixed"],
+    default: "installment"
+  },
+  billingCycle: {
+    type: String,
+    enum: ["monthly", "annual"],
+    default: "monthly"
+  },
+  recurringValue: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
   installmentValue: {
     type: Number,
     required: true,
@@ -41,6 +56,40 @@ const AccountSchema = new mongoose.Schema({
     type: Date,
     required: true
   },
+  nextDueDate: {
+    type: Date,
+    default: null
+  },
+  lastPaymentAt: {
+    type: Date,
+    default: null
+  },
+  subscriptionPayments: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  adjustmentHistory: [{
+    changedAt: {
+      type: Date,
+      required: true
+    },
+    oldValue: {
+      type: Number,
+      required: true,
+      min: 0
+    },
+    newValue: {
+      type: Number,
+      required: true,
+      min: 0
+    },
+    note: {
+      type: String,
+      trim: true,
+      default: ""
+    }
+  }],
   category: {
     type: String,
     trim: true,

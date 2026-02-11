@@ -5,6 +5,7 @@ const BoxSchema = new mongoose.Schema({
   name: { type: String, trim: true },
   currentValue: { type: Number, default: 0 },
   principalValue: { type: Number, default: 0 },
+  goalAmount: { type: Number, default: 0 },
   firstContributionAt: { type: Date, default: null },
   isEmergency: { type: Boolean, default: false },
   investmentType: {
@@ -13,6 +14,7 @@ const BoxSchema = new mongoose.Schema({
     default: "none"
   },
   autoCdi: { type: Boolean, default: false },
+  autoYieldToWallet: { type: Boolean, default: true },
   cdiAnnualRate: { type: Number, default: 0 },
   cdiPercentage: { type: Number, default: 0 },
   // Legacy fields kept for backward-compatibility in old documents/payloads.
