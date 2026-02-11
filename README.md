@@ -37,11 +37,17 @@ MAIL_USER=myfinance.app.noreply@gmail.com
 MAIL_PASS=app_password
 FRONT_URL=http://localhost:5000
 BLOB_READ_WRITE_TOKEN=vercel_blob_token
+BCB_CDI_SERIES_CODE=12
+CDI_CACHE_TTL_MINUTES=180
+CDI_REQUEST_TIMEOUT_MS=7000
+CDI_ANNUAL_FALLBACK_RATE=
 ```
 
 Notas:
 - `MONGO_URI_DIRECT` e opcional e so usado como fallback quando o DNS SRV falhar.
 - `DNS_SERVERS` e opcional e pode ajudar em ambientes com bloqueio de consulta SRV.
+- `BCB_CDI_SERIES_CODE` define a serie SGS usada para CDI (padrao `12`).
+- `CDI_ANNUAL_FALLBACK_RATE` e opcional para contingencia quando o BCB estiver indisponivel.
 
 ## Como rodar
 
@@ -166,6 +172,9 @@ Corpo:
 
 ### Usuario (auth)
 
+- `GET /users/me`  
+  Retorna dados do usuario logado.
+
 - `PATCH /users/me`  
   Atualiza o nome do usuario logado.
 
@@ -188,6 +197,24 @@ Resposta:
 
 ```json
 { "avatarUrl": "https://...vercel-storage.com/avatars/...", "user": { "...": "..." } }
+```
+
+- `PATCH /users/me/password`  
+  Altera a senha do usuario logado.
+
+Corpo:
+
+```json
+{ "currentPassword": "senha_atual", "newPassword": "nova_senha" }
+```
+
+- `DELETE /users/me`  
+  Exclui a conta do usuario logado.
+
+Corpo:
+
+```json
+{ "password": "senha_atual" }
 ```
 
 ### Transacoes (auth)
@@ -311,8 +338,23 @@ Corpo:
 
 ### Caixinhas (auth)
 
+- Campos de investimento:
+  - `investmentType`: `none` | `cdb_cdi`
+  - `autoCdi`: boolean (`true` para usar CDI oficial automatico)
+  - `cdiAnnualRate`: number (CDI anual em %, opcional quando `autoCdi = true`)
+  - `cdiPercentage`: number (% do CDI, exemplo `102` para 102% do CDI)
+  - `initialValue`: number (opcional, valor inicial da aplicacao)
+  - `applicationDate`: `YYYY-MM-DD` (opcional, data da aplicacao inicial)
+
+Regras:
+- Para `cdb_cdi`, o rendimento e aplicado automaticamente em dias uteis sobre o saldo atual.
+- Com `autoCdi = true`, a API busca o CDI oficial e atualiza a taxa automaticamente.
+- Para `none`, nao ha rendimento.
+- A API retorna projecoes liquidas (IR/IOF) sem descontar imposto do saldo bruto ate o resgate.
+- Quando `initialValue` e enviado com `applicationDate` passada, a API calcula rendimento acumulado ate a data atual.
+
 - `GET /boxes`  
-  Lista caixinhas da familia.
+  Lista caixinhas da familia e aplica rendimento automatico pendente.
 
 - `POST /boxes`  
   Cria caixinha.
@@ -320,8 +362,20 @@ Corpo:
 Corpo:
 
 ```json
-{ "name": "Reserva", "isEmergency": true }
+{
+  "name": "Reserva",
+  "isEmergency": true,
+  "initialValue": 1000,
+  "applicationDate": "2026-01-10",
+  "autoCdi": true,
+  "investmentType": "cdb_cdi",
+  "cdiAnnualRate": 10.65,
+  "cdiPercentage": 102
+}
 ```
+
+- `GET /boxes/market/cdi?refresh=1`
+  Retorna o CDI oficial atual (com cache e fallback quando necessario).
 
 - `POST /boxes/:id/move`  
   Movimenta valor dentro/fora da caixinha.
@@ -333,7 +387,7 @@ Corpo:
 ```
 
 - `PUT /boxes/:id`  
-  Atualiza dados da caixinha.
+  Atualiza dados da caixinha (nome, emergencia e investimento).
 
 - `DELETE /boxes/:id`  
   Remove caixinha e seu historico.

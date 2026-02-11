@@ -9,15 +9,46 @@ const Family = require("../models/Family");
 const Box = require("../models/Box");
 
 const { sendMail } = require("../services/mail.service");
+const {
+  buildVerificationEmail,
+  buildResetPasswordEmail,
+} = require("../services/mail-template.service");
 const { secret, expiresIn } = require("../config/jwt");
 
 const FRONT_URL = process.env.FRONT_URL;
+
+async function resolveAndPersistFamilyRole(user) {
+  const current = String(user?.familyRole || "").trim().toLowerCase();
+
+  if (!user?.familyId) {
+    if (user.familyRole !== "member") {
+      user.familyRole = "member";
+      await user.save();
+    }
+    return "member";
+  }
+
+  const family = await Family.findById(user.familyId).select("ownerId");
+  const isOwner = family && String(family.ownerId) === String(user._id);
+  const resolved = isOwner
+    ? "owner"
+    : current === "admin"
+      ? "admin"
+      : "member";
+
+  if (user.familyRole !== resolved) {
+    user.familyRole = resolved;
+    await user.save();
+  }
+  return resolved;
+}
 
 exports.register = async (req, res) => {
   try {
     await connectDB();
 
     const { name, email, password, inviteCode } = req.body;
+    const normalizedInviteCode = String(inviteCode || "").trim().toUpperCase();
 
     const exists = await User.findOne({ email });
     if (exists) {
@@ -29,8 +60,8 @@ exports.register = async (req, res) => {
 
     let family;
 
-    if (inviteCode) {
-      family = await Family.findOne({ inviteCode });
+    if (normalizedInviteCode) {
+      family = await Family.findOne({ inviteCode: normalizedInviteCode });
       if (!family) {
         return res.status(400).json({ error: "Código de convite inválido" });
       }
@@ -40,11 +71,12 @@ exports.register = async (req, res) => {
       name,
       email,
       password: hashedPassword,
+      familyRole: "member",
       emailVerificationToken: verificationToken,
       emailVerificationExpires: Date.now() + 1000 * 60 * 60
     });
 
-    if (!inviteCode) {
+    if (!normalizedInviteCode) {
       // Cria familia e caixinha de emergencia no cadastro inicial.
       const newInviteCode = crypto.randomBytes(4).toString("hex").toUpperCase();
 
@@ -62,14 +94,15 @@ exports.register = async (req, res) => {
     }
 
     user.familyId = family._id;
+    user.familyRole = normalizedInviteCode ? "member" : "owner";
     await user.save();
 
     const link = `${FRONT_URL}/verify-email.html?token=${verificationToken}`;
 
     await sendMail({
       to: email,
-      subject: "Verifique seu email",
-      html: `Olá, ${name}\n\nClique no link abaixo para verificar seu email:\n${link}`
+      subject: "Confirme seu cadastro no MyFinance",
+      html: buildVerificationEmail({ name, link })
     });
 
     return res.json({
@@ -94,8 +127,10 @@ exports.login = async (req, res) => {
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) return res.status(400).json({ error: "Senha inválida" });
 
+    const familyRole = await resolveAndPersistFamilyRole(user);
+
     const token = jwt.sign(
-      { id: user._id, familyId: user.familyId },
+      { id: user._id, familyId: user.familyId, familyRole },
       secret,
       { expiresIn }
     );
@@ -105,6 +140,7 @@ exports.login = async (req, res) => {
       name: user.name,
       email: user.email,
       familyId: user.familyId,
+      familyRole,
       emailVerified: user.emailVerified,
       avatarUrl: user.avatarUrl || null,
     };
@@ -161,8 +197,8 @@ exports.forgotPassword = async (req, res) => {
 
     await sendMail({
       to: email,
-      subject: "Recuperação de senha",
-      html: `Clique no link abaixo para redefinir sua senha:\n${link}`
+      subject: "Redefina sua senha no MyFinance",
+      html: buildResetPasswordEmail({ name: user.name, link })
     });
 
     return res.json({ message: "Email enviado" });
@@ -194,8 +230,8 @@ exports.resendVerification = async (req, res) => {
 
     await sendMail({
       to: user.email,
-      subject: "Verifique seu email",
-      html: `Olá, ${user.name}\n\nClique no link abaixo para verificar seu email:\n${link}`
+      subject: "Confirme seu cadastro no MyFinance",
+      html: buildVerificationEmail({ name: user.name, link })
     });
 
     return res.json({ message: "Email reenviado" });
