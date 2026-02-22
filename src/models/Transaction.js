@@ -8,6 +8,7 @@ const TransactionSchema = new mongoose.Schema({
   category: String,
   group: { type: String, enum: ["fixed", "variable", "planned", "unexpected"] },
   date: Date,
+  description: String,
   createdAt: { type: Date, default: Date.now }
 });
 
