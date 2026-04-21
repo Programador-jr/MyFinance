@@ -94,7 +94,7 @@ function pushAdjustmentHistory(account, entry) {
     .slice(-120);
 }
 
-function normalizePayload(body, current = null) {
+function normalizePayload(body, current = null, isUpdate = false) {
   const data = body && typeof body === "object" ? body : {};
 
   const nameRaw = data.name ?? current?.name ?? "";
@@ -124,14 +124,25 @@ function normalizePayload(body, current = null) {
   );
 
   let paidInstallmentsRaw = data.paidInstallments ?? current?.paidInstallments ?? 0;
-  let paidInstallments = Math.min(
-    Math.max(Math.floor(toNumber(paidInstallmentsRaw, 0)), 0),
-    installments
-  );
+  let paidInstallments;
+  if (isUpdate && current && !recurringType) {
+    // UPDATE parcelas: preservar paidInstallments antigos, limitar apenas pelo installments ANTIGOS
+    const oldInstallments = parseInstallments(current.installments, 1);
+    paidInstallments = Math.min(
+      Math.max(Math.floor(toNumber(paidInstallmentsRaw, 0)), 0),
+      oldInstallments
+    );
+  } else {
+    // CREATE ou recorrentes: limitar por novos installments
+    paidInstallments = Math.min(
+      Math.max(Math.floor(toNumber(paidInstallmentsRaw, 0)), 0),
+      installments
+    );
+  }
 
-  const firstDueDateRaw = data.firstDueDate ?? current?.firstDueDate;
+  const firstDueDateRaw = data.firstDueDate ?? data.firstPaymentDate ?? current?.firstDueDate;
   const firstDueDate = parseDate(firstDueDateRaw);
-  const nextDueDateRaw = data.nextDueDate ?? current?.nextDueDate;
+  const nextDueDateRaw = data.nextDueDate ?? data.nextPaymentDate ?? current?.nextDueDate;
   const nextDueDate = parseDate(nextDueDateRaw) || null;
   const lastPaymentAtRaw = data.lastPaymentAt ?? current?.lastPaymentAt;
   const lastPaymentAt = parseDate(lastPaymentAtRaw) || null;
@@ -225,7 +236,7 @@ function resolveNextPaymentValue(account) {
 
 exports.create = async (req, res) => {
   try {
-    const payload = normalizePayload(req.body);
+    const payload = normalizePayload(req.body, null, false);
     const error = validatePayload(payload);
 
     if (error) {
@@ -295,7 +306,7 @@ exports.update = async (req, res) => {
       return res.status(404).json({ error: "Conta nao encontrada" });
     }
 
-    const payload = normalizePayload(req.body, account);
+    const payload = normalizePayload(req.body, account, true);
     const error = validatePayload(payload);
 
     if (error) {
@@ -319,16 +330,36 @@ exports.update = async (req, res) => {
     account.installments = payload.installments;
     account.paidInstallments = payload.paidInstallments;
     account.firstDueDate = payload.firstDueDate;
-    account.nextDueDate = nextRecurring
-      ? (payload.nextDueDate || account.nextDueDate || payload.firstDueDate)
-      : null;
+    // ✅ FIX: Preservar nextDueDate enviado pelo usuário, calcular apenas se não enviado
+    if (!nextRecurring && payload.firstDueDate) {
+      // Se o usuário enviou um novo nextDueDate diferente, preservar
+      if (payload.nextDueDate && payload.nextDueDate !== account.nextDueDate) {
+        account.nextDueDate = payload.nextDueDate;
+      } else {
+        const firstDate = parseDate(payload.firstDueDate);
+        if (firstDate) {
+          let nextDate = new Date(firstDate);
+          nextDate.setMonth(nextDate.getMonth() + payload.paidInstallments);
+          account.nextDueDate = nextDate;
+        } else {
+          account.nextDueDate = null;
+        }
+      }
+    } else {
+      account.nextDueDate = nextRecurring
+        ? (payload.nextDueDate || account.nextDueDate || payload.firstDueDate)
+        : null;
+    }
     account.lastPaymentAt = nextRecurring
       ? (payload.lastPaymentAt || account.lastPaymentAt || null)
       : null;
     account.subscriptionPayments = nextRecurring
-      ? Math.max(toNumber(account.subscriptionPayments, 0), 0)
+      ? Math.max(toNumber(payload.subscriptionPayments ?? account.subscriptionPayments, 0), 0)
       : 0;
     account.category = payload.category;
+
+    // ✅ FIX: Preservar adjustmentHistory existente
+    account.adjustmentHistory = current?.adjustmentHistory || [];
 
     if (nextType === "subscription") {
       const nextRecurringValue = round2(Math.max(toNumber(payload.recurringValue, 0), 0));
