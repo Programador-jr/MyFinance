@@ -359,7 +359,7 @@ exports.update = async (req, res) => {
     account.category = payload.category;
 
     // ✅ FIX: Preservar adjustmentHistory existente
-    account.adjustmentHistory = current?.adjustmentHistory || [];
+    account.adjustmentHistory = account.adjustmentHistory || [];
 
     if (nextType === "subscription") {
       const nextRecurringValue = round2(Math.max(toNumber(payload.recurringValue, 0), 0));
