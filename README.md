@@ -1,19 +1,27 @@
 # MyFinance API
 
+Uma API REST para gerenciamento financeiro pessoal e familiar, com autenticação, transações, categorias, contas parceladas, caixinhas de reserva e resumos financeiros.
+
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-3C873A)](https://nodejs.org)
 [![Express](https://img.shields.io/badge/express-5.x-000000)](https://expressjs.com)
 [![MongoDB](https://img.shields.io/badge/mongodb-Atlas-47A248)](https://www.mongodb.com)
 [![License](https://img.shields.io/badge/license-ISC-blue)](LICENSE)
 
-API oficial do MyFinance para gerenciamento financeiro familiar. Esta API
-centraliza autenticacao, usuarios, transacoes, categorias, caixinhas,
-dashboard e gestao de familia/convites.
+A API oficial do MyFinance centraliza autenticação, usuários, transações, categorias, caixinhas, dashboard e gestão de famílias e convites.
 
-## Stack
+## Principais recursos
+
+- Cadastro, autenticação e verificação de e-mail com JWT.
+- Gestão de transações, categorias, contas parceladas e caixinhas.
+- Organização financeira compartilhada por família e convites.
+- Resumo financeiro por período e integração com dados de CDI.
+- Upload de avatar usando Vercel Blob.
+
+## Tecnologias
 
 - Node.js + Express
 - MongoDB + Mongoose
-- JWT para autenticacao
+- JWT para autenticação
 - Nodemailer para email
 - Multer + Vercel Blob para upload de avatar
 
@@ -22,9 +30,9 @@ dashboard e gestao de familia/convites.
 - Node.js 18+
 - MongoDB
 
-## Configuracao
+## Configuração
 
-Crie um arquivo `.env` na raiz com as variaveis abaixo (exemplo):
+Crie um arquivo `.env` na raiz com as variáveis abaixo (exemplo):
 
 ```env
 PORT=3000
@@ -44,10 +52,10 @@ CDI_ANNUAL_FALLBACK_RATE=
 ```
 
 Notas:
-- `MONGO_URI_DIRECT` e opcional e so usado como fallback quando o DNS SRV falhar.
-- `DNS_SERVERS` e opcional e pode ajudar em ambientes com bloqueio de consulta SRV.
-- `BCB_CDI_SERIES_CODE` define a serie SGS usada para CDI (padrao `12`).
-- `CDI_ANNUAL_FALLBACK_RATE` e opcional para contingencia quando o BCB estiver indisponivel.
+- `MONGO_URI_DIRECT` é opcional e só usado como fallback quando o DNS SRV falhar.
+- `DNS_SERVERS` é opcional e pode ajudar em ambientes com bloqueio de consulta SRV.
+- `BCB_CDI_SERIES_CODE` define a série SGS usada para CDI (padrão `12`).
+- `CDI_ANNUAL_FALLBACK_RATE` é opcional para contingência quando o BCB estiver indisponível.
 
 ## Como rodar
 
@@ -56,9 +64,9 @@ npm install
 npm run dev
 ```
 
-API disponivel em `http://localhost:3000`.
+API disponível em `http://localhost:3000`.
 
-## Autenticacao
+## Autenticação
 
 As rotas protegidas exigem o token JWT retornado no login:
 
@@ -66,7 +74,7 @@ As rotas protegidas exigem o token JWT retornado no login:
 Authorization: Bearer <token>
 ```
 
-## Padrao de erros
+## Padrão de erros
 
 Respostas de erro seguem o formato:
 
@@ -81,7 +89,7 @@ Base URL: `/`
 ### Health check
 
 - `GET /`  
-  Retorna status basico do servico.
+  Retorna o status básico do serviço.
 
 Exemplo de resposta:
 
@@ -92,8 +100,8 @@ Exemplo de resposta:
 ### Auth
 
 - `POST /auth/register`  
-  Cria usuario e familia (se nao houver `inviteCode`) e envia email de
-  verificacao.
+  Cria usuário e família (se não houver `inviteCode`) e envia e-mail de
+  verificação.
 
 Corpo:
 
@@ -116,7 +124,7 @@ Resposta:
 ```
 
 - `POST /auth/login`  
-  Autentica e retorna token + dados do usuario.
+  Autentica e retorna token + dados do usuário.
 
 Corpo:
 
@@ -141,10 +149,10 @@ Resposta:
 ```
 
 - `GET /auth/verify-email?token=...`  
-  Valida o token de verificacao de email.
+  Valida o token de verificação de e-mail.
 
 - `POST /auth/resend-verification`  
-  Reenvia email de verificacao.
+  Reenvia email de verificação.
 
 Corpo:
 
@@ -153,7 +161,7 @@ Corpo:
 ```
 
 - `POST /auth/forgot-password`  
-  Dispara email de recuperacao.
+  Dispara email de recuperação.
 
 Corpo:
 
@@ -162,7 +170,7 @@ Corpo:
 ```
 
 - `POST /auth/reset-password`  
-  Redefine senha com token valido.
+  Redefine senha com token válido.
 
 Corpo:
 
@@ -170,10 +178,10 @@ Corpo:
 { "token": "reset_token", "password": "nova_senha" }
 ```
 
-### Usuario (auth)
+### Usuário (auth)
 
 - `GET /users/me`  
-  Retorna dados do usuario logado.
+  Retorna dados do usuário logado.
 
 - `PATCH /users/me`  
   Atualiza o nome do usuario logado.
@@ -236,17 +244,17 @@ Corpo:
 {
   "type": "income",
   "value": 1500,
-  "category": "Salario",
+  "category": "Salário",
   "group": "fixed",
   "date": "2026-01-17T12:00:00.000Z"
 }
 ```
 
 - `GET /transactions`  
-  Lista todas as transacoes da familia (ordenadas por data desc).
+  Lista todas as transações da família (ordenadas por data desc).
 
 - `GET /transactions/month?year=YYYY&month=MM`  
-  Filtra por mes.
+  Filtra por mês.
 
 - `GET /transactions/year?year=YYYY`  
   Filtra por ano.
@@ -255,7 +263,7 @@ Corpo:
   Filtra por intervalo.
 
 - `GET /transactions/:id`  
-  Busca uma transacao especifica.
+  Busca uma transacao específica.
 
 - `PUT /transactions/:id`  
   Atualiza uma transacao existente.
@@ -292,13 +300,13 @@ Corpo:
 ```
 
 - `GET /accounts`  
-  Lista contas da familia.
+  Lista contas da família.
 
 - `GET /accounts/:id`  
   Busca uma conta por id.
 
 - `PUT /accounts/:id`  
-  Atualiza uma conta (todos os campos editaveis).
+  Atualiza uma conta (todos os campos editáveis).
 
 - `DELETE /accounts/:id`  
   Exclui uma conta.
@@ -307,11 +315,11 @@ Corpo:
   Registra o pagamento da proxima parcela, cria uma transacao de despesa
   (`group: fixed`) e incrementa `paidInstallments`.
 
-Corpo (quando a conta ainda nao tem categoria):
+Corpo (quando a conta ainda não tem categoria):
 
 ```json
 {
-  "category": "Eletronicos",
+  "category": "Eletrônicos",
   "date": "2026-02-08T12:00:00.000Z"
 }
 ```
@@ -319,7 +327,7 @@ Corpo (quando a conta ainda nao tem categoria):
 ### Categorias (auth)
 
 - `GET /categories`  
-  Lista categorias fixas e da familia.
+  Lista categorias fixas e da família.
 
 - `POST /categories`  
   Cria categoria customizada.
@@ -334,7 +342,7 @@ Corpo:
   Atualiza o nome da categoria.
 
 - `DELETE /categories/:id`  
-  Remove categoria (nao pode estar em uso).
+  Remove categoria (não pode estar em uso).
 
 ### Caixinhas (auth)
 
@@ -349,12 +357,12 @@ Corpo:
 Regras:
 - Para `cdb_cdi`, o rendimento e aplicado automaticamente em dias uteis sobre o saldo atual.
 - Com `autoCdi = true`, a API busca o CDI oficial e atualiza a taxa automaticamente.
-- Para `none`, nao ha rendimento.
-- A API retorna projecoes liquidas (IR/IOF) sem descontar imposto do saldo bruto ate o resgate.
+- Para `none`, não ha rendimento.
+- A API retorna projecoes líquidas (IR/IOF) sem descontar imposto do saldo bruto ate o resgate.
 - Quando `initialValue` e enviado com `applicationDate` passada, a API calcula rendimento acumulado ate a data atual.
 
 - `GET /boxes`  
-  Lista caixinhas da familia e aplica rendimento automatico pendente.
+  Lista caixinhas da família e aplica rendimento automatico pendente.
 
 - `POST /boxes`  
   Cria caixinha.
@@ -387,10 +395,10 @@ Corpo:
 ```
 
 - `PUT /boxes/:id`  
-  Atualiza dados da caixinha (nome, emergencia e investimento).
+  Atualiza dados da caixinha (nome, emergência e investimento).
 
 - `DELETE /boxes/:id`  
-  Remove caixinha e seu historico.
+  Remove caixinha e seu histórico.
 
 ### Dashboard (auth)
 
@@ -406,7 +414,7 @@ Resposta:
 ### Familia (auth)
 
 - `POST /family/join`  
-  Entra em uma familia via codigo.
+  Entra em uma família via codigo.
 
 Corpo:
 
@@ -415,7 +423,7 @@ Corpo:
 ```
 
 - `GET /family`  
-  Retorna dados da familia e membros.
+  Retorna dados da família e membros.
 
 - `GET /family/invite-code`  
   Retorna o codigo de convite (somente owner).
@@ -431,6 +439,6 @@ Corpo:
 O upload de avatar usa `@vercel/blob` com armazenamento publico. O endpoint
 retorna o `avatarUrl` com a URL publica do blob.
 
-Requer a variavel `BLOB_READ_WRITE_TOKEN` configurada no ambiente.
+Requer a variável `BLOB_READ_WRITE_TOKEN` configurada no ambiente.
 
 ## [Licença](LICENSE) 
