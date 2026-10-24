@@ -1,6 +1,6 @@
 # MyFinance API
 
-Uma API REST para gerenciamento financeiro pessoal e famíliar, com autenticação, transações, categorias, contas parceladas, caixinhas de reserva e resumos financeiros.
+Uma API REST para gerenciamento financeiro pessoal e familiar, com autenticação, transações, categorias, contas parceladas, caixinhas de reserva e resumos financeiros.
 
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-3C873A)](https://nodejs.org)
 [![Express](https://img.shields.io/badge/express-5.x-000000)](https://expressjs.com)
@@ -52,10 +52,10 @@ CDI_ANNUAL_FALLBACK_RATE=
 ```
 
 Notas:
-- `MONGO_URI_DIRECT` e opcional e só usado como fallback quando o DNS SRV falhar.
-- `DNS_SERVERS` e opcional e pode ajudar em ambientes com bloqueio de consulta SRV.
+- `MONGO_URI_DIRECT` é opcional e só usado como fallback quando o DNS SRV falhar.
+- `DNS_SERVERS` é opcional e pode ajudar em ambientes com bloqueio de consulta SRV.
 - `BCB_CDI_SERIES_CODE` define a série SGS usada para CDI (padrão `12`).
-- `CDI_ANNUAL_FALLBACK_RATE` e opcional para contingencia quando o BCB estiver indisponível.
+- `CDI_ANNUAL_FALLBACK_RATE` é opcional para contingência quando o BCB estiver indisponível.
 
 ## Como rodar
 
@@ -66,7 +66,7 @@ npm run dev
 
 API disponível em `http://localhost:3000`.
 
-## Autenticacao
+## Autenticação
 
 As rotas protegidas exigem o token JWT retornado no login:
 
@@ -74,7 +74,7 @@ As rotas protegidas exigem o token JWT retornado no login:
 Authorization: Bearer <token>
 ```
 
-## Padrao de erros
+## Padrão de erros
 
 Respostas de erro seguem o formato:
 
@@ -89,7 +89,7 @@ Base URL: `/`
 ### Health check
 
 - `GET /`  
-  Retorna status basico do servico.
+  Retorna o status básico do serviço.
 
 Exemplo de resposta:
 
@@ -100,7 +100,7 @@ Exemplo de resposta:
 ### Auth
 
 - `POST /auth/register`  
-  Cria usuario e família (se não houver `inviteCode`) e envia email de
+  Cria usuário e família (se não houver `inviteCode`) e envia e-mail de
   verificação.
 
 Corpo:
@@ -118,13 +118,13 @@ Resposta:
 
 ```json
 {
-  "mêssage": "Cadastro realizado. Verifique seu email.",
+  "message": "Cadastro realizado. Verifique seu email.",
   "familyId": "..."
 }
 ```
 
 - `POST /auth/login`  
-  Autentica e retorna token + dados do usuario.
+  Autentica e retorna token + dados do usuário.
 
 Corpo:
 
@@ -149,7 +149,7 @@ Resposta:
 ```
 
 - `GET /auth/verify-email?token=...`  
-  Valida o token de verificação de email.
+  Valida o token de verificação de e-mail.
 
 - `POST /auth/resend-verification`  
   Reenvia email de verificação.
@@ -181,7 +181,7 @@ Corpo:
 ### Usuário (auth)
 
 - `GET /users/me`  
-  Retorna dados do usuario logado.
+  Retorna dados do usuário logado.
 
 - `PATCH /users/me`  
   Atualiza o nome do usuario logado.
